@@ -6,7 +6,11 @@ setup () {
 }
 
 dev () {
-  (cd public && npx live-server) &
+  if [ "$1" = live ]; then
+    (cd public && npx live-server) &
+  else
+    firebase serve &
+  fi
   npx onchange -v 'src/**/*.clj' -- clj -m cows.core
 }
 

@@ -31,20 +31,24 @@
       [:h1.mb-5
        "There's been a murder at the dairy. Put your deductive "
        "skills to the test and find out hoof dunnit."]]]
-    [:.row
+    [:.row.before-signup
      [:.col-md-10.col-lg-8.col-xl-7.mx-auto
       [:form
        [:.form-row
         [:.col-12.col-md-9.mb-2.mb-md-0
-         [:input.form-control.form-control-lg
+         [:input#email.form-control.form-control-lg
           {:placeholder "Enter email", :type "email"}]]
         [:.col-12.col-md-3
          [:button.btn.btn-block.btn-lg.btn-primary
-          {:type "submit"}
+          {:on-click "signup(event)"
+           :type "submit"}
           "Sign up"]]]]]]
-    [:.row
+    [:.row.before-signup
      [:.col.mx-auto
-      [:h2 "Coming soon"]]]]])
+      [:h2 "Coming soon"]]]
+    [:.row.after-signup {:style {:display "none"}}
+     [:.col.mx-auto
+      [:h2 "Thanks for signup up. We'll notify you once Mystery Cows is ready to play."]]]]])
 
 (defc testimonial-item [{:keys [img-src title text]}]
   [:.col-lg-4
@@ -77,6 +81,13 @@
                           :title title
                           :text text}))]]])
 
+(def scripts
+  (list
+    [:script {:src "/__/firebase/7.8.0/firebase-app.js"}]
+    [:script {:src "/__/firebase/7.8.0/firebase-firestore.js"}]
+    [:script {:src "/__/firebase/init.js"}]
+    [:script {:src "/js/main.js"}]))
+
 (defc landing-page []
   [:html {:lang "en-US"
           :style {:min-height "100%"}}
@@ -84,7 +95,8 @@
    [:body {:style {:font-family "'Helvetica Neue', Helvetica, Arial, sans-serif"}}
     navbar
     signup-form
-    testimonials]])
+    testimonials
+    scripts]])
 
 (defn -main []
   (spit "public/index.html" (rum/render-static-markup (landing-page))))
