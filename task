@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+setup () {
+  npm install live-server onchange
+}
+
+dev () {
+  (cd public && npx live-server) &
+  npx onchange -v 'src/**/*.clj' -- clj -m cows.core
+}
+
+"$@"

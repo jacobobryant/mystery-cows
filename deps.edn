@@ -1,0 +1,3 @@
+{:deps
+ {rum {:mvn/version "0.11.4"
+       :exclusions [cljsjs/react cljsjs/react-dom]}}}
