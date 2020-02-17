@@ -6,6 +6,9 @@ setup () {
 }
 
 dev () {
+  if ! [ -f public/index.html ]; then
+    clj -m cows.core
+  fi
   if [ "$1" = live ]; then
     (cd public && npx live-server) &
   else
