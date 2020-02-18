@@ -2,10 +2,17 @@
 set -e
 
 setup () {
-  npm install live-server onchange
+  npm install live-server onchange node-sass
+  if ! [ -d bootstrap/bootstrap-4.4.1 ]; then
+    cd bootstrap
+    curl -o archive.zip https://github.com/twbs/bootstrap/archive/v4.4.1.zip
+    unzip archive.zip
+    rm archive.zip
+  fi
 }
 
 dev () {
+  npx node-sass -w bootstrap/custom.scss public/css/bootstrap.css &
   if ! [ -f public/index.html ]; then
     clj -m cows.core
   fi
