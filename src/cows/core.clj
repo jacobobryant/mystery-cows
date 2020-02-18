@@ -18,7 +18,7 @@
    [:link {:rel "manifest" :href "/site.webmanifest"}]])
 
 (def navbar
-  [:nav.navbar.navbar-light.bg-light.static-top
+  [:nav.navbar.navbar-dark.bg-primary.static-top
    [:.container
     [:.navbar-brand "Mystery Cows"]]])
 
