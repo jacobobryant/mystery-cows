@@ -9,6 +9,8 @@ setup () {
     unzip archive.zip
     rm archive.zip
   fi
+  curl -o public/css/firebase-ui-auth-4.4.0.css https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css
+  curl -o public/js/firebase-ui-auth-4.4.0.js https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.js
 }
 
 dev () {
@@ -22,6 +24,12 @@ dev () {
     firebase serve &
   fi
   npx onchange -v 'src/**/*.clj' -- clj -m cows.core
+}
+
+deploy () {
+  npx node-sass bootstrap/custom.scss public/css/bootstrap.css
+  clj -m cows.core
+  firebase deploy
 }
 
 "$@"

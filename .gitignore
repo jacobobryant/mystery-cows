@@ -1,8 +1,10 @@
-public/index.html
-public/css/bootstrap.css
-bootstrap/bootstrap-4.4.1
 .cpcache
 .firebaserc
+bootstrap/bootstrap-4.4.1
+public/**/*.html
+public/css/bootstrap.css
+public/css/firebase-ui-auth-4.4.0.css
+public/js/firebase-ui-auth-4.4.0.js
 
 # Logs
 logs

@@ -1,54 +1,47 @@
 (ns cows.core
-  (:require [rum.core :as rum :refer [defc]]))
+  (:require
+    [clojure.java.io :as io]
+    [rum.core :as rum :refer [defc]]))
 
-(def head
-  [:head
-   [:title "Mystery Cows"]
-   [:meta {:name "author" :content "Jacob O'Bryant"}]
-   [:meta {:name "description"
-           :content (str "A board game written with Clojure. Part of "
-                      "The Solo Hacker's Guide To Clojure.")}]
-   [:meta {:charset "utf-8"}]
-   [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
-   [:link {:rel "stylesheet" :href "/css/bootstrap.css"}]
-   [:link {:rel "stylesheet" :href "/css/main.css"}]
-   [:link {:rel "apple-touch-icon" :sizes "180x180" :href "/apple-touch-icon.png"}]
-   [:link {:rel "icon" :type "image/png" :sizes "32x32" :href "/favicon-32x32.png"}]
-   [:link {:rel "icon" :type "image/png" :sizes "16x16" :href "/favicon-16x16.png"}]
-   [:link {:rel "manifest" :href "/site.webmanifest"}]])
+(def h-style {:font-family "'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+              :font-weight 700})
+
+(def default-head
+  (list
+    [:title "Mystery Cows"]
+    [:meta {:name "author" :content "Jacob O'Bryant"}]
+    [:meta {:name "description"
+            :content (str "A board game written with Clojure. Part of "
+                       "The Solo Hacker's Guide To Clojure.")}]
+    [:meta {:charset "utf-8"}]
+    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+    [:link {:rel "stylesheet" :href "/css/bootstrap.css"}]
+    [:link {:rel "stylesheet" :href "/css/main.css"}]
+    [:link {:rel "apple-touch-icon" :sizes "180x180" :href "/apple-touch-icon.png"}]
+    [:link {:rel "icon" :type "image/png" :sizes "32x32" :href "/favicon-32x32.png"}]
+    [:link {:rel "icon" :type "image/png" :sizes "16x16" :href "/favicon-16x16.png"}]
+    [:link {:rel "manifest" :href "/site.webmanifest"}]))
 
 (def navbar
-  [:nav.navbar.navbar-light.bg-light.static-top
+  [:nav.navbar.navbar-dark.bg-primary.static-top
    [:.container
     [:.navbar-brand "Mystery Cows"]]])
 
-(def signup-form
+(def header
   [:header.masthead.text-white.text-center
    [:.overlay]
    [:.container
     [:.row
      [:.col-xl-9.mx-auto
-      [:h1.mb-5
+      [:h1.masthead-h1.mb-3 {:style h-style}
        "There's been a murder at the dairy. Put your deductive "
        "skills to the test and find out hoof dunnit."]]]
-    [:.row.before-signup
-     [:.col-md-10.col-lg-8.col-xl-7.mx-auto
-      [:form
-       [:.form-row
-        [:.col-12.col-md-9.mb-2.mb-md-0
-         [:input#email.form-control.form-control-lg
-          {:placeholder "Enter email", :type "email"}]]
-        [:.col-12.col-md-3
-         [:button.btn.btn-block.btn-lg.btn-primary
-          {:on-click "signup(event)"
-           :type "submit"}
-          "Sign up"]]]]]]
-    [:.row.before-signup
-     [:.col.mx-auto
-      [:h2 "Coming soon"]]]
-    [:.row.after-signup {:style {:display "none"}}
-     [:.col.mx-auto
-      [:h2 "Thanks for signup up. We'll notify you once Mystery Cows is ready to play."]]]]])
+    [:.d-flex.justify-content-center
+     [:a.btn.btn-primary.btn-block.btn-lg
+      {:style {:z-index 1
+               :max-width "10rem"}
+       :href "/login/"}
+      "Sign in"]]]])
 
 (defc testimonial-item [{:keys [img-src title text]}]
   [:.col-lg-4
@@ -58,7 +51,7 @@
               :box-shadow "0px 5px 5px 0px #adb5bd"}
       :alt ""
       :src img-src}]
-    [:h5 title]
+    [:h5 {:style h-style} title]
     [:p.font-weight-light.mb-0 text]]])
 
 (def testimonials
@@ -66,7 +59,8 @@
    {:style {:padding-top "7rem"
             :padding-bottom "7rem"}}
    [:.container
-    [:h2.mb-5 "What bovines are saying..."]
+    [:h2.mb-5 {:style h-style}
+     "What bovines are saying..."]
     [:.row
      (for [[img-src title text] [["img/cow1.jpg"
                                   "Margaret E."
@@ -81,22 +75,66 @@
                           :title title
                           :text text}))]]])
 
-(def scripts
+(def firebase-js
   (list
     [:script {:src "/__/firebase/7.8.0/firebase-app.js"}]
-    [:script {:src "/__/firebase/7.8.0/firebase-firestore.js"}]
-    [:script {:src "/__/firebase/init.js"}]
-    [:script {:src "/js/main.js"}]))
+    [:script {:src "/__/firebase/7.8.0/firebase-auth.js"}]
+    [:script {:src "/__/firebase/init.js"}]))
 
-(defc landing-page []
+(defc base-page [{:keys [head scripts]} & contents]
   [:html {:lang "en-US"
           :style {:min-height "100%"}}
-   head
-   [:body {:style {:font-family "'Helvetica Neue', Helvetica, Arial, sans-serif"}}
-    navbar
-    signup-form
-    testimonials
-    scripts]])
+   (into
+     [:head
+      default-head]
+     head)
+   (into
+     [:body {:style {:font-family "'Helvetica Neue', Helvetica, Arial, sans-serif"}}
+      navbar
+      contents
+      firebase-js]
+     scripts)])
+
+(def ensure-logged-in
+  [:script
+   {:dangerouslySetInnerHTML
+    {:__html "firebase.auth().onAuthStateChanged(u => { if (!u) window.location.href = '/'; });"}}])
+
+(def ensure-logged-out
+  [:script
+   {:dangerouslySetInnerHTML
+    {:__html "firebase.auth().onAuthStateChanged(u => { if (u) window.location.href = '/app/'; });"}}])
+
+(defc landing-page []
+  (base-page {:scripts [ensure-logged-out]}
+    header
+    testimonials))
+
+(defc login []
+  (base-page {:head [[:link {:type "text/css"
+                             :rel "stylesheet"
+                             :href "/css/firebase-ui-auth-4.4.0.css"}]]
+              :scripts [[:script {:src "/js/firebase-ui-auth-4.4.0.js"}]
+                        [:script {:src "/js/main.js"}]
+                        ensure-logged-out]}
+    [:#firebaseui-auth-container
+     {:style {:margin-top "7rem"}}]))
+
+(defc app []
+  (base-page {:scripts [ensure-logged-in]}
+    [:#app
+     [:.d-flex.flex-column.align-items-center.mt-4
+      [:p "Welcome to Mystery Cows."]
+      [:button.btn.btn-primary {:on-click "firebase.auth().signOut()"}
+       "Sign Out"]]]))
+
+(def pages
+  {"/" landing-page
+   "/login/" login
+   "/app/" app})
 
 (defn -main []
-  (spit "public/index.html" (rum/render-static-markup (landing-page))))
+  (doseq [[path component] pages
+          :let [full-path (str "public" path "index.html")]]
+    (io/make-parents full-path)
+    (spit full-path (rum/render-static-markup (component)))))
