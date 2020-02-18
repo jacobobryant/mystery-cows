@@ -5,9 +5,9 @@ setup () {
   npm install live-server onchange node-sass
   if ! [ -d bootstrap/bootstrap-4.4.1 ]; then
     cd bootstrap
-    curl -o archive.zip https://github.com/twbs/bootstrap/archive/v4.4.1.zip
-    unzip archive.zip
-    rm archive.zip
+    curl -OL https://github.com/twbs/bootstrap/archive/v4.4.1.zip
+    unzip v4.4.1.zip
+    rm v4.4.1.zip
   fi
   curl -o public/css/firebase-ui-auth-4.4.0.css https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css
   curl -o public/js/firebase-ui-auth-4.4.0.js https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.js
