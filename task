@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+sass () {
+  npx node-sass "$@" bootstrap/custom.scss public/css/bootstrap.css
+}
+
 setup () {
   npm install live-server onchange node-sass
   if ! [ -d bootstrap/bootstrap-4.4.1 ]; then
@@ -12,7 +16,8 @@ setup () {
 }
 
 dev () {
-  npx node-sass -w bootstrap/custom.scss public/css/bootstrap.css &
+  sass
+  sass -w &
   if ! [ -f public/index.html ]; then
     clj -m cows.core
   fi
