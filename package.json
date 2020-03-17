@@ -1,0 +1,29 @@
+{
+  "name": "mystery-cows",
+  "version": "1.0.0",
+  "description": "This is an example program that I'm developing alongside [The Solo Hacker's Guide To Clojure](https://jacobobryant.com/post/2020/guide-to-clojure/). It's like the board game Clue, but cow-themed. It's deployed at [cows.jacobobryant.com](https://cows.jacobobryant.com).",
+  "main": "index.js",
+  "dependencies": {
+    "react": "^16.13.0",
+    "react-dom": "^16.13.0"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.1",
+    "node-sass": "^4.13.1",
+    "onchange": "^6.1.0",
+    "shadow-cljs": "^2.8.93"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacobobryant/mystery-cows.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jacobobryant/mystery-cows/issues"
+  },
+  "homepage": "https://github.com/jacobobryant/mystery-cows#readme"
+}

@@ -121,12 +121,14 @@
      {:style {:margin-top "7rem"}}]))
 
 (defc app []
-  (base-page {:scripts [ensure-logged-in]}
+  (base-page {:scripts [ensure-logged-in
+                        [:script {:src "/cljs/main.js"}]]}
     [:#app
      [:.d-flex.flex-column.align-items-center.mt-4
-      [:p "Welcome to Mystery Cows."]
-      [:button.btn.btn-primary {:on-click "firebase.auth().signOut()"}
-       "Sign Out"]]]))
+      [:.spinner-border.text-primary
+       {:role "status"}
+       [:span.sr-only
+        "Loading..."]]]]))
 
 (def pages
   {"/" landing-page

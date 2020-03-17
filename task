@@ -6,7 +6,7 @@ sass () {
 }
 
 setup () {
-  npm install live-server onchange node-sass
+  npm install
   if ! [ -d bootstrap/bootstrap-4.4.1 ]; then
     cd bootstrap
     curl -OL -o archive.zip https://github.com/twbs/bootstrap/archive/v4.4.1.zip
@@ -23,6 +23,7 @@ dev () {
   if ! [ -f public/index.html ]; then
     clj -m cows.core
   fi
+  npx shadow-cljs server &
   if [ "$1" = live ]; then
     (cd public && npx live-server) &
   else

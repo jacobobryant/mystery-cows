@@ -1,0 +1,9 @@
+{:deps {:aliases [:cljs]}
+ :nrepl {:port 7890}
+ :builds {:main {:target :browser
+                 :output-dir "public/cljs"
+                 :asset-path "/cljs"
+                 :compiler-options {:infer-externs :auto}
+                 :modules {:main {:init-fn cows.core/init
+                                  :entries [cows.core]}}
+                 :devtools {:after-load cows.core/mount}}}}

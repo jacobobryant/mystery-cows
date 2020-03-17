@@ -1,7 +1,10 @@
 .cpcache
 .firebaserc
+.nrepl-port
+.shadow-cljs/
 bootstrap/bootstrap-4.4.1
 public/**/*.html
+public/cljs/
 public/css/bootstrap.css
 public/css/firebase-ui-auth-4.4.0.css
 public/js/firebase-ui-auth-4.4.0.js
