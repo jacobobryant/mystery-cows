@@ -35,6 +35,8 @@ dev () {
 deploy () {
   sass
   clj -m cows.core
+  rm -r $(find public/ -name cljs-runtime)
+  npx shadow-cljs release main
   firebase deploy
 }
 
