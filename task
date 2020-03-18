@@ -20,16 +20,15 @@ setup () {
 dev () {
   sass
   sass -w &
-  if ! [ -f public/index.html ]; then
-    clj -m cows.core
-  fi
   npx shadow-cljs server &
+  clj -m cows.core
+  npx onchange -v 'src/**/*.clj' -- clj -m cows.core &
   if [ "$1" = live ]; then
-    (cd public && npx live-server) &
+    cd public
+    npx live-server
   else
-    firebase serve &
+    firebase serve
   fi
-  npx onchange -v 'src/**/*.clj' -- clj -m cows.core
 }
 
 deploy () {
