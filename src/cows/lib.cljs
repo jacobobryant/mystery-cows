@@ -3,6 +3,7 @@
     [cows.lib]
     [cljs.core.async.macros :refer [go-loop]])
   (:require
+    [rum.core]
     [clojure.set :as set]
     [cljs.core.async :refer [close!]]
     [trident.util :as u]))
