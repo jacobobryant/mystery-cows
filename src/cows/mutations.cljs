@@ -1,47 +1,54 @@
 (ns cows.mutations
   (:require-macros
-    [cljs.core.async.macros :refer [go go-loop]])
+    [cljs.core.async.macros :refer [go-loop]])
   (:require
     [cljs.core.async :refer [<!]]
-    [cows.db :as db :refer [db]]
-    [cows.util :as util :refer [fs]]
-    [trident.firestore :as tfire :refer [write merge-changeset]]))
+    [cows.lib :as lib :refer [capture-env]]
+    [trident.firestore :as firestore :refer [write merge-changeset]]))
 
-(defn subscribe [queries]
-  (let [c (tfire/subscribe (fs) queries)]
+(defn subscribe [{:keys [db/db misc/fs]} q]
+  (let [c (firestore/subscribe fs [q])]
     (go-loop []
-      (swap! db merge-changeset (<! c))
-      (recur))))
+      (when-some [changeset (<! c)]
+        (swap! db merge-changeset changeset)
+        (recur)))
+    c))
 
-(defn init-db []
-  (let [user (.. js/firebase auth -currentUser)
+(defn init-db [{:keys [db/db db/subscriptions misc/auth] :as env}]
+  (lib/maintain-subscriptions subscriptions #(subscribe env %))
+  (let [user (.-currentUser auth)
         uid (.-uid user)
         email (.-email user)]
-    (swap! db assoc :ui {:uid uid :email email}))
-  (subscribe [[:games]]))
+    (swap! db assoc :ui {:uid uid :email email})))
 
-(defn create-game []
-  (write (fs)
-    {[:games] {:players [@db/uid]}}))
+(defn create-game
+  [{:keys [db/uid misc/fs]}]
+  (write fs
+    {[:games] {:players [@uid]}}))
 
-(defn leave-game [game-id]
-  (let [last-player (= 1 (count (get-in @db [:games game-id :players])))]
-    (write (fs)
-      {[:games game-id] (when-not last-player
-                          ^:update {:players (.. js/firebase
-                                               -firestore
-                                               -FieldValue
-                                               (arrayRemove @db/uid))})})))
+(defn leave-game
+  [{:db/keys [db game-id uid]
+    :misc/keys [fs]}]
+  (let [last-player (= 1 (count (get-in @db [:games @game-id :players])))]
+    (write fs
+      {[:games @game-id] (when-not last-player
+                           ^:update {:players (.. js/firebase
+                                                -firestore
+                                                -FieldValue
+                                                (arrayRemove @uid))})})))
 
-(defn join-game [game-id]
-  (write (fs)
+(defn join-game
+  [{:keys [misc/fs db/uid]} game-id]
+  (write fs
     {[:games game-id] ^:update {:players (.. js/firebase
                                            -firestore
                                            -FieldValue
-                                           (arrayUnion @db/uid))}}))
+                                           (arrayUnion @uid))}}))
 
-(defn send-message [game-id text]
-  (write (fs)
-    {[:messages [:games game-id]] {:text text
-                                   :user @db/uid
-                                   :timestamp (js/Date.)}}))
+(defn send-message [{:keys [misc/fs db/game-id db/uid]} text]
+  (write fs
+    {[:messages [:games @game-id]] {:text text
+                                    :user @uid
+                                    :timestamp (js/Date.)}}))
+
+(def env (capture-env 'cows.mutations))
