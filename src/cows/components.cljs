@@ -28,7 +28,8 @@
     (for [p players]
       [:li {:key p} (util/username p)])]
    [:button.btn.btn-primary.btn-sm.btn-block
-    {:on-click #(join-game env game-id)}
+    {:disabled (>= (count players) 6)
+     :on-click #(join-game env game-id)}
     "Join"]])
 
 (defc game-list < reactive
@@ -76,16 +77,21 @@
      :on-change #(reset! text (.. % -target -value))}]])
 
 (defc game < reactive
-  [{:keys [db/current-game m/leave-game] :as env}]
+  [{:keys [db/current-game m/leave-game m/start-game] :as env}]
   (let [{:keys [players]
          [_ game-id] :ident} (react current-game)]
     [:.row
      [:.col-md-8
-      [:div "Game ID: " (subs game-id 0 4) " ("
-       (text-button {:on-click #(leave-game env)} "leave") ")"]
+      [:div "Game ID: " (subs game-id 0 4)]
       [:ul.pl-4
        (for [p players]
-         [:li {:key p} (util/username p)])]]
+         [:li {:key p} (util/username p)])]
+      [:div
+       [:button.btn.btn-primary.mr-2
+        {:disabled (< (count players) 3)
+         :on-click #(start-game env)}
+        "Start game"]
+       [:button.btn.btn-secondary {:on-click #(leave-game env)} "Leave game"]]]
      [:.col-md-4
       (chat env)]]))
 

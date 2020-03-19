@@ -1,5 +1,8 @@
 (ns cows.mutations
+  (:require-macros
+    [cljs.core.async.macros :refer [go]])
   (:require
+    [cljs.core.async :refer [<!]]
     [cows.lib :as lib :refer [capture-env]]
     [trident.firestore :as firestore :refer [write merge-changeset]]))
 
@@ -48,5 +51,10 @@
     {[:messages [:games @game-id]] {:text text
                                     :user @uid
                                     :timestamp (js/Date.)}}))
+
+(defn start-game
+  [{:keys [db/game-id fn/handle] :as env}]
+  (go
+    (trident.util/pprint (<! (handle [:start-game @game-id])))))
 
 (def env (capture-env 'cows.mutations))

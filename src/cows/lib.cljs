@@ -1,8 +1,10 @@
 (ns cows.lib
   (:require-macros
     [cows.lib]
-    [cljs.core.async.macros :refer [go-loop]])
+    [cljs.core.async.macros :refer [go go-loop]])
   (:require
+    [cljs.core.async :refer [take!]]
+    [clojure.edn :as edn]
     [rum.core]
     [clojure.set :as set]
     [cljs.core.async :refer [close!]]
@@ -54,3 +56,41 @@
     (cond-> ns-segment
       (not-empty (namespace k)) (str "." (namespace k)))
     (name k)))
+
+(defn prepend-keys [ns-segment m]
+  (u/map-keys #(prepend-ns ns-segment %) m))
+
+(defn firebase-fns [ks]
+  (u/map-to (fn [k]
+              (let [f (.. js/firebase
+                        functions
+                        (httpsCallable (name k)))]
+                (fn [data]
+                  (-> data
+                    pr-str
+                    f
+                    u/js<!
+                    .-data
+                    edn/read-string
+                    go))))
+    ks))
+
+(defn chan? [x]
+  (satisfies? cljs.core.async.impl.protocols/ReadPort x))
+
+(defn wrap-fn [handler]
+  (fn [data context]
+    (let [[event data] (edn/read-string data)
+          env (-> context
+                (js->clj :keywordize-keys true)
+                (assoc :event event))
+          env (-> env
+                (merge (prepend-keys "auth" (:auth env)))
+                (dissoc :auth))
+          result (handler env data)]
+      (u/pprint env)
+      (if (chan? result)
+        (js/Promise.
+          (fn [success]
+            (take! result (comp success pr-str))))
+        (pr-str result)))))

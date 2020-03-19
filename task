@@ -19,25 +19,16 @@ setup () {
 
 dev () {
   sass
-  sass -w &
-  if ! [ -f public/index.html ]; then
-    clj -m cows.core
-  fi
-  npx shadow-cljs server &
-  if [ "$1" = live ]; then
-    (cd public && npx live-server) &
-  else
-    firebase serve &
-  fi
-  npx onchange -v 'src/**/*.clj' -- clj -m cows.core
+  clj -m cows.core
+  overmind s
 }
 
 deploy () {
   sass
   clj -m cows.core
   rm -r $(find public/ -name cljs-runtime)
-  npx shadow-cljs release main
-  firebase deploy
+  npx shadow-cljs release main fn
+  npx firebase deploy
 }
 
 "$@"

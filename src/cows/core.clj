@@ -77,9 +77,9 @@
 
 (defn firebase-js [modules]
   (list
-    [:script {:src "/__/firebase/7.8.0/firebase-app.js"}]
+    [:script {:src "/__/firebase/7.11.0/firebase-app.js"}]
     (for [m modules]
-      [:script {:src (str "/__/firebase/7.8.0/firebase-" (name m) ".js")}])
+      [:script {:src (str "/__/firebase/7.11.0/firebase-" (name m) ".js")}])
     [:script {:src "/__/firebase/init.js"}]))
 
 (defc base-page [{:keys [firebase-modules head scripts]} & contents]
@@ -125,7 +125,7 @@
      {:style {:margin-top "7rem"}}]))
 
 (defc app []
-  (base-page {:firebase-modules [:auth :firestore]
+  (base-page {:firebase-modules [:auth :firestore :functions]
               :scripts [ensure-logged-in
                         [:script {:src "/cljs/main.js"}]]}
     [:#app

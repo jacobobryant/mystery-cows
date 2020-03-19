@@ -18,20 +18,22 @@
     (mapcat flatten-form form)
     (list form)))
 
-(defmacro defderivations [sources nspace & forms]
-  `(do
-     ~@(->> (partition 2 forms)
-         (reduce
-           (fn [[defs sources] [sym form]]
-             (let [deps (->> form
-                          flatten-form
-                          (map sources)
-                          (filter some?)
-                          distinct
-                          vec)
-                   k (keyword (name nspace) (name sym))]
-               [(conj defs `(def ~sym (rum.core/derived-atom ~deps ~k
-                                        (fn ~deps ~form))))
-                (conj sources sym)]))
-           [[] (set sources)])
-         first)))
+(defn derivations [sources nspace & forms]
+  (->> (partition 2 forms)
+    (reduce
+      (fn [[defs sources] [sym form]]
+        (let [deps (->> form
+                     flatten-form
+                     (map sources)
+                     (filter some?)
+                     distinct
+                     vec)
+              k (keyword (name nspace) (name sym))]
+          [(conj defs `(def ~sym (rum.core/derived-atom ~deps ~k
+                                   (fn ~deps ~form))))
+           (conj sources sym)]))
+      [[] (set sources)])
+    first))
+
+(defmacro defderivations [& args]
+  `(do ~@(apply derivations args)))
