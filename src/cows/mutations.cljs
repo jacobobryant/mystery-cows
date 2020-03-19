@@ -1,18 +1,16 @@
 (ns cows.mutations
-  (:require-macros
-    [cljs.core.async.macros :refer [go-loop]])
   (:require
-    [cljs.core.async :refer [<!]]
     [cows.lib :as lib :refer [capture-env]]
     [trident.firestore :as firestore :refer [write merge-changeset]]))
 
-(defn subscribe [{:keys [db/db misc/fs]} q]
-  (let [c (firestore/subscribe fs [q])]
-    (go-loop []
-      (when-some [changeset (<! c)]
-        (swap! db merge-changeset changeset)
-        (recur)))
-    c))
+(defn subscribe [{:db/keys [db sub-data]
+                  :misc/keys [fs]} q]
+  (lib/merge-subscription!
+    {:state-atom db
+     :sub-data-atom sub-data
+     :merge-result merge-changeset
+     :sub-key q
+     :sub-channel (firestore/subscribe fs [q])}))
 
 (defn init-db [{:keys [db/db db/subscriptions misc/auth] :as env}]
   (lib/maintain-subscriptions subscriptions #(subscribe env %))
@@ -27,9 +25,9 @@
     {[:games] {:players [@uid]}}))
 
 (defn leave-game
-  [{:db/keys [db game-id uid]
+  [{:db/keys [current-game game-id uid]
     :misc/keys [fs]}]
-  (let [last-player (= 1 (count (get-in @db [:games @game-id :players])))]
+  (let [last-player (= 1 (count (:players @current-game)))]
     (write fs
       {[:games @game-id] (when-not last-player
                            ^:update {:players (.. js/firebase

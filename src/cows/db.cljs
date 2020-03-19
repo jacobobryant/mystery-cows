@@ -8,10 +8,12 @@
 (defcursors db
   uid [:ui :uid]
   email [:ui :email]
-  games [:games]
-  all-messages [:messages])
+  sub-data [:sub-data])
 
 (defderivations
+  [::data sub-data] (apply merge-with merge (vals sub-data))
+  [::games data] (:games data)
+  [::all-messages data] (:messages data)
   [::current-game games uid] (->> games
                                vals
                                (filter (fn [{:keys [players]}]
