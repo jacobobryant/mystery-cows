@@ -7,16 +7,13 @@
     [trident.util :as u]
     [trident.firestore :as firestore :refer [write query merge-changeset]]))
 
-(defn subscribe [{:db/keys [db sub-data]
+(defn subscribe [{:db/keys [sub-data]
                   :misc/keys [fs]} q]
-  (let [channel (firestore/subscribe fs [q])]
-    (lib/merge-subscription!
-      {:state-atom db
-       :sub-data-atom sub-data
-       :merge-result merge-changeset
-       :sub-key q
-       :sub-channel channel})
-    channel))
+  (lib/merge-subscription-results!
+    {:sub-data-atom sub-data
+     :merge-result merge-changeset
+     :sub-key q
+     :sub-channel (firestore/subscribe fs [q])}))
 
 (defn init-db [{:keys [db/db db/subscriptions misc/auth] :as env}]
   (let [user (.-currentUser auth)

@@ -3,7 +3,7 @@
     [cows.lib]
     [cljs.core.async.macros :refer [go go-loop]])
   (:require
-    [cljs.core.async :refer [take!]]
+    [cljs.core.async :as async :refer [take! chan put!]]
     [clojure.edn :as edn]
     [rum.core]
     [clojure.set :as set]
@@ -13,46 +13,42 @@
 (defn maintain-subscriptions
   "Watch for changes in a set of subscriptions (stored in sub-atom), subscribing
   and unsubscribing accordingly. sub-fn should take an element of @sub-atom and
-  return a channel for the subscription."
+  return a channel that delivers the subscription channel after the first subscription result
+  has been received. This is necessary because otherwise, old subscriptions would
+  be closed too early, causing problems for the calculation of sub-atom."
   [sub-atom sub-fn]
   (let [sub->chan (atom {})
-        watch (fn [_ _ _ new-subs]
-                (let [old-subs (set (keys @sub->chan))
-                      old-subs (set/difference old-subs new-subs)
-                      new-subs (set/difference new-subs old-subs)]
-                  ;(u/pprint [:maintain-subscriptions
-                  ;           old-subs new-subs])
-                  (swap! sub->chan merge (u/map-to sub-fn new-subs))
-                  (doseq [channel (map @sub->chan old-subs)]
-                    (close! channel))
-                  (swap! sub->chan #(apply dissoc % old-subs))))]
+        c (chan)
+        watch (fn [_ _ old-subs new-subs]
+                (put! c [old-subs new-subs]))]
+    (go-loop []
+      (let [[old-subs new-subs] (<! c)
+            tmp old-subs
+            old-subs (set/difference old-subs new-subs)
+            new-subs (vec (set/difference new-subs tmp))
+            new-channels (<! (async/map vector (map sub-fn new-subs)))]
+        (swap! sub->chan merge (zipmap new-subs new-channels))
+        (doseq [channel (map @sub->chan old-subs)]
+          (close! channel))
+        (swap! sub->chan #(apply dissoc % old-subs)))
+      (recur))
     (add-watch sub-atom ::maintain-subscriptions watch)
-    (watch nil nil nil @sub-atom)))
+    (watch nil nil #{} @sub-atom)))
 
-(defn merge-subscription!
-  "Continually merge results from subscription into sub-data-atom. Data from closed
-  subscriptions is removed, but only after any new subscriptions have received their
-  initial results."
-  [{:keys [state-atom sub-data-atom merge-result sub-key sub-channel]}]
-  (swap! state-atom update ::pending-subs (fnil conj #{}) sub-key)
-  ;(u/pprint [:pending-subs sub-key (::pending-subs @state-atom)])
-  (go-loop []
-    ;(u/pprint [:sub-status sub-key (::gc-subs @state-atom) (::pending-subs @state-atom)])
-    (when (and (not-empty (::gc-subs @state-atom)) (empty? (::pending-subs @state-atom)))
-      ;(u/pprint [:gc-running sub-key])
-      (apply swap! sub-data-atom dissoc (::gc-subs @state-atom))
-      (swap! state-atom dissoc ::gc-subs))
-    (if-some [result (<! sub-channel)]
-      (do
-        ;(u/pprint [:result sub-key result (merge-result (get @sub-data-atom sub-key) result)])
-        (swap! state-atom update ::pending-subs disj sub-key)
-        (swap! state-atom update ::gc-subs disj sub-key)
-        (swap! sub-data-atom update sub-key merge-result result)
-        (recur))
-      (do
-        (swap! state-atom update ::gc-subs (fnil conj #{}) sub-key)
-        ;(u/pprint [:gc-subs sub-key (::gc-subs @state-atom)])
-        ))))
+(defn merge-subscription-results!
+  "Continually merge results from subscription into sub-data-atom. Returns a channel
+  that delivers sub-channel after the first result has been merged."
+  [{:keys [sub-data-atom merge-result sub-key sub-channel]}]
+  (go
+    (let [merge! #(swap! sub-data-atom update sub-key merge-result %)]
+      (merge! (<! sub-channel))
+      (go-loop []
+        (if-some [result (<! sub-channel)]
+          (do
+            (merge! (<! sub-channel))
+            (recur))
+          (swap! sub-data-atom dissoc sub-key)))
+      sub-channel)))
 
 (defn respectively [& fs]
   (fn [& xs]
