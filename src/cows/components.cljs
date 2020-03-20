@@ -43,7 +43,7 @@
       vals
       (map (partial game-card env)))]])
 
-(defc message < static {:key-fn :timestamp}
+(defc message < static {:key-fn #(.getTime (:timestamp %))}
   [{:keys [user timestamp text]}]
   [:div.mb-2
    [:strong (util/username user)]

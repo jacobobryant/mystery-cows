@@ -45,7 +45,7 @@
       (go-loop []
         (if-some [result (<! sub-channel)]
           (do
-            (merge! (<! sub-channel))
+            (merge! result)
             (recur))
           (swap! sub-data-atom dissoc sub-key)))
       sub-channel)))
