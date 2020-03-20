@@ -88,7 +88,6 @@
                 (merge (prepend-keys "auth" (:auth env)))
                 (dissoc :auth))
           result (handler env data)]
-      (u/pprint env)
       (if (chan? result)
         (js/Promise.
           (fn [success]

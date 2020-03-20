@@ -1,6 +1,7 @@
 (ns cows.db
   (:require
-    [cows.lib :as lib :refer [capture-env defcursors defderivations]]))
+    [cows.lib :as lib :refer [capture-env defcursors defderivations]]
+    [trident.util :as u]))
 
 (defonce db (atom {}))
 
@@ -28,6 +29,12 @@
   subscriptions (if game-id
                   #{[:games game-id]
                     [:messages [:games game-id]]}
-                  #{[:games]}))
+                  #{{:ident [:games]
+                     :where [[:state '== nil]]}
+                    {:ident [:games]
+                     :where [[:players 'array-contains uid]]}}))
 
 (def env (capture-env 'cows.db))
+
+(comment
+  (u/pprint @db))

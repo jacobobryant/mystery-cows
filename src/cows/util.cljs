@@ -9,3 +9,39 @@
 
 (defn username [uid]
   (str (rand-word adjectives uid) "-" (rand-word nouns uid)))
+
+(def names ["Miss Scarlet"
+            "Colonel Mustard"
+            "Mrs. Peacock"
+            "Mr. Green"
+            "Professor Plum"
+            "Mrs. White"])
+
+(def weapons ["Knife"
+              "Lead pipe"
+              "Candlestick"
+              "Rope"
+              "Revolver"
+              "Wrench"])
+
+(def rooms ["Study"
+            "Hall"
+            "Lounge"
+            "Dining Room"
+            "Kitchen"
+            "Ballroom"
+            "Conservatory"
+            "Billiard Room"
+            "Library"])
+
+(defn starting-cards [players]
+  (let [cards (->> [names weapons rooms]
+                (mapcat (comp rest shuffle))
+                shuffle)
+        hand-size (quot (count cards) (count players))
+        hands (partition-all hand-size cards)
+        face-up-cards (nth hands (count players) nil)]
+    [(zipmap players hands) face-up-cards]))
+
+(defn starting-positions [players]
+  (zipmap players (shuffle [[17 0] [24 7] [15 24] [10 24] [0 18] [0 5]])))
