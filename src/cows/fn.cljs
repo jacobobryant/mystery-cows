@@ -31,7 +31,7 @@
   [{:keys [auth/uid]} game-id]
   (go
     (when-some [{:keys [players state]} (<! (game game-id uid))]
-      (when (nil? state)
+      (when (= state "lobby")
         (<! (write (firestore)
               {[:games game-id] (when-not (= 1 (count players))
                                   ^:update {:players (.. firestore
@@ -43,7 +43,7 @@
   [{:keys [auth/uid]} game-id]
   (go
     (when-some [{:keys [players state]} (<! (game game-id))]
-      (when (and (nil? state) (< (count players) 6))
+      (when (and (= state "lobby") (< (count players) 6))
         (<! (write (firestore)
               {[:games game-id] ^:update {:players (.. firestore
                                                      -FieldValue
@@ -54,7 +54,7 @@
   [{:keys [auth/uid]} game-id]
   (go
     (when-some [{:keys [players state] :as game} (<! (game game-id uid))]
-      (when (and (nil? state) (<= 3 (count players) 6))
+      (when (and (= state "lobby") (<= 3 (count players) 6))
         (let [players (shuffle players)
               [cards face-up-cards] (util/starting-cards players)]
           (<! (write (firestore)

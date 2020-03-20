@@ -30,11 +30,8 @@
                   #{[:games game-id]
                     [:messages [:games game-id]]}
                   #{{:ident [:games]
-                     :where [[:state '== nil]]}
+                     :where [[:state '== "lobby"]]}
                     {:ident [:games]
                      :where [[:players 'array-contains uid]]}}))
 
 (def env (capture-env 'cows.db))
-
-(comment
-  (u/pprint @db))

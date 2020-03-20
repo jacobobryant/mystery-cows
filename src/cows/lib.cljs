@@ -12,13 +12,16 @@
 
 (defn maintain-subscriptions
   "Watch for changes in a set of subscriptions (stored in sub-atom), subscribing
-  and unsubscribing accordingly."
+  and unsubscribing accordingly. sub-fn should take an element of @sub-atom and
+  return a channel for the subscription."
   [sub-atom sub-fn]
   (let [sub->chan (atom {})
         watch (fn [_ _ _ new-subs]
                 (let [old-subs (set (keys @sub->chan))
                       old-subs (set/difference old-subs new-subs)
                       new-subs (set/difference new-subs old-subs)]
+                  ;(u/pprint [:maintain-subscriptions
+                  ;           old-subs new-subs])
                   (swap! sub->chan merge (u/map-to sub-fn new-subs))
                   (doseq [channel (map @sub->chan old-subs)]
                     (close! channel))
@@ -32,17 +35,24 @@
   initial results."
   [{:keys [state-atom sub-data-atom merge-result sub-key sub-channel]}]
   (swap! state-atom update ::pending-subs (fnil conj #{}) sub-key)
+  ;(u/pprint [:pending-subs sub-key (::pending-subs @state-atom)])
   (go-loop []
+    ;(u/pprint [:sub-status sub-key (::gc-subs @state-atom) (::pending-subs @state-atom)])
     (when (and (not-empty (::gc-subs @state-atom)) (empty? (::pending-subs @state-atom)))
+      ;(u/pprint [:gc-running sub-key])
       (apply swap! sub-data-atom dissoc (::gc-subs @state-atom))
       (swap! state-atom dissoc ::gc-subs))
     (if-some [result (<! sub-channel)]
       (do
+        ;(u/pprint [:result sub-key result (merge-result (get @sub-data-atom sub-key) result)])
         (swap! state-atom update ::pending-subs disj sub-key)
         (swap! state-atom update ::gc-subs disj sub-key)
         (swap! sub-data-atom update sub-key merge-result result)
         (recur))
-      (swap! state-atom update ::gc-subs (fnil conj #{}) sub-key))))
+      (do
+        (swap! state-atom update ::gc-subs (fnil conj #{}) sub-key)
+        ;(u/pprint [:gc-subs sub-key (::gc-subs @state-atom)])
+        ))))
 
 (defn respectively [& fs]
   (fn [& xs]
