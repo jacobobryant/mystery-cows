@@ -4,8 +4,10 @@
   (:require
     ["firebase-functions" :as functions]
     ["firebase-admin" :as admin :refer [firestore]]
-    [cljs.core.async :refer [<! take!]]
+    [cljs.core.async :as async :refer [<! take!]]
     [clojure.edn :as edn]
+    [clojure.spec.alpha :as s]
+    [clojure.set :as set]
     [cows.lib :as lib]
     [cows.util :as util]
     [trident.firestore :as tfire :refer [query pull write]]
@@ -32,11 +34,16 @@
   (go
     (when-some [{:keys [players state]} (<! (game game-id uid))]
       (when (= state "lobby")
-        (<! (write (firestore)
-              {[:games game-id] (when-not (= 1 (count players))
-                                  ^:update {:players (.. firestore
-                                                       -FieldValue
-                                                       (arrayRemove uid))})}))))
+        (let [messages (when (= 1 (count players))
+                         (u/map-from-to :ident (constantly nil)
+                           (<! (query (firestore) [:messages [:games game-id]]))))]
+          (<! (write (firestore)
+                (merge
+                  {[:games game-id] (when-not (= 1 (count players))
+                                      ^:update {:players (.. firestore
+                                                           -FieldValue
+                                                           (arrayRemove uid))})}
+                  messages))))))
     nil))
 
 (defmethod handle :join-game
@@ -48,6 +55,170 @@
               {[:games game-id] ^:update {:players (.. firestore
                                                      -FieldValue
                                                      (arrayUnion uid))}}))))
+    nil))
+
+(defmethod handle :roll
+  [{:keys [auth/uid]} game-id]
+  (go
+    (when-some [{:keys [current-player state]} (<! (game game-id uid))]
+      (when (and (= state "start-turn") (= uid current-player))
+        (let [roll (apply + (repeatedly 2 #(inc (rand-int 6))))]
+          (<! (write (firestore)
+                {[:games game-id] ^:update {:state "after-roll"
+                                            :roll-result roll}
+                 [:events [:games game-id]] {:event "roll"
+                                             :timestamp (u/now)
+                                             :player uid
+                                             :roll roll}})))))
+    nil))
+
+(defmethod handle :move
+  [{:keys [auth/uid]} [game-id dest]]
+  (go
+    (when-some [{:keys [current-player state positions players roll-result]
+                 :as game} (<! (game game-id uid))]
+      (when (and (= state "after-roll")
+              (= uid current-player)
+              (util/valid-move?
+                {:positions (u/map-keys name positions)
+                 :roll roll-result
+                 :player uid
+                 :dest dest}))
+        (<! (write (firestore)
+              {[:games game-id]
+               ^:update {:state (if (s/valid? :cows.util/coordinate dest)
+                                  "accuse"
+                                  "suggest")
+                         (str "positions." uid) dest}
+               [:events [:games game-id]] {:event "move"
+                                           :timestamp (u/now)
+                                           :player uid
+                                           :destination dest}}))))
+    nil))
+
+(defmethod handle :end-turn
+  [{:keys [auth/uid]} game-id]
+  (go
+    (when-some [{:keys [current-player players losers state]} (<! (game game-id uid))]
+      (when (and (= state "accuse")
+              (= uid current-player))
+        (<! (write (firestore)
+              {[:games game-id]
+               ^:update {:state "start-turn"
+                         :current-player (util/next-player players losers current-player)}}))))))
+
+(defmethod handle :suggest
+  [{:keys [auth/uid]} [game-id [person weapon]]]
+  (go
+    (when-some [{:keys [current-player state positions players losers]
+                 :as game} (<! (game game-id uid))]
+      (when (and (= state "suggest")
+              (= uid current-player)
+              ((set util/names) person)
+              ((set util/weapons) weapon))
+        (let [room (util/room-char->name (positions (keyword current-player)))
+              suggestion [person weapon room]
+              responder (->> (util/next-players players current-player)
+                          (map #(pull (firestore) [:cards [:games game-id %]]))
+                          (async/map vector)
+                          <!
+                          (filter #(some (set (:cards %)) suggestion))
+                          first
+                          :ident
+                          second
+                          last)]
+          (<! (write (firestore)
+                {[:games game-id]
+                 ^:update {:state (if responder "respond" "accuse")
+                           :responder responder
+                           :suggestion suggestion}
+                 [:events [:games game-id]] {:event "suggest"
+                                             :timestamp (u/now)
+                                             :player uid
+                                             :responder responder
+                                             :cards suggestion}})))))
+    nil))
+
+(defmethod handle :accuse
+  [{:keys [auth/uid]} [game-id [person weapon room :as accusation]]]
+  (go
+    (when-some [{:keys [current-player state positions players losers]
+                 :as game} (<! (game game-id uid))]
+      (when (and (= state "accuse")
+              (= uid current-player)
+              ((set util/names) person)
+              ((set util/weapons) weapon)
+              ((set util/rooms) room))
+        (let [player-cards (->> players
+                             (map #(pull (firestore) [:cards [:games game-id %]]))
+                             (async/map vector)
+                             <!
+                             (mapcat :cards)
+                             set)
+              solution (set/difference (set (concat util/names util/weapons util/rooms))
+                         player-cards)
+              correct (= #{person weapon room} solution)
+              two-left (and (not correct)
+                         (= 2 (- (count players) (count losers))))
+              winner (cond
+                       correct uid
+                       two-left (->> players
+                                  (remove (conj (set losers) uid))
+                                  first)
+                       :default nil)
+              game-data (u/assoc-some
+                          {:state (if correct
+                                    "game-over"
+                                    "start-turn")}
+                          :current-player (when-not correct
+                                            (util/next-player players losers uid))
+                          :losers (when-not correct
+                                    (.. firestore
+                                      -FieldValue
+                                      (arrayUnion uid)))
+                          :winner winner
+                          :solution (when winner solution))]
+          (<! (write (firestore)
+                {[:games game-id] (with-meta game-data {:update true})
+                 [:events [:games game-id]] {:event "accuse"
+                                             :timestamp (u/now)
+                                             :player uid
+                                             :correct correct
+                                             :cards [person weapon room]}})))))
+    nil))
+
+(defmethod handle :respond
+  [{:keys [auth/uid]} [game-id card]]
+  (go
+    (when-some [{:keys [responder state positions players current-player suggestion]
+                 :as game} (<! (game game-id uid))]
+      (when (and (= state "respond")
+              (= responder uid)
+              (some #{card} suggestion)
+              ((set (:cards (<! (pull (firestore) [:cards [:games game-id responder]]))))
+               card))
+        (let [event-id (str (random-uuid))
+              event {:event "respond"
+                     :timestamp (u/now)
+                     :responder uid
+                     :suggester current-player}]
+          (<! (write (firestore)
+                {[:games game-id] ^:update {:state "accuse"}
+                 [:events [:games game-id event-id]] event
+                 [:responses [:games game-id event-id]] (assoc event :card card)})))))
+    nil))
+
+(defmethod handle :quit
+  [{:keys [auth/uid]} game-id]
+  (go
+    (when-some [_ (<! (game game-id uid))]
+      (let [subcollections (->> [:messages :cards :events :responses]
+                             (map #(query (firestore) [% [:games game-id]]))
+                             (async/map vector)
+                             <!
+                             (map #(u/map-from-to :ident (constantly nil) %)))]
+        (<! (write (firestore)
+              (apply merge {[:games game-id] nil} subcollections)))))
     nil))
 
 (defmethod handle :start-game

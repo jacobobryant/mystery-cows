@@ -24,8 +24,7 @@
 
 (def navbar
   [:nav.navbar.navbar-dark.bg-primary.static-top
-   [:.container
-    [:.navbar-brand "Mystery Cows"]]])
+   [:.navbar-brand "Mystery Cows"]])
 
 (def header
   [:header.masthead.text-white.text-center

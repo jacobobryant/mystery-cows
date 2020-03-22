@@ -46,4 +46,33 @@
   [{:keys [db/game-id fn/handle] :as env}]
   (handle [:start-game @game-id]))
 
+(defn roll
+  [{:keys [db/game-id fn/handle] :as env}]
+  (handle [:roll @game-id]))
+
+(defn move
+  [{:keys [db/game-id fn/handle] :as env} position]
+  (handle [:move [@game-id position]]))
+
+(defn suggest
+  [{:keys [db/game-id fn/handle] :as env} cards]
+  (handle [:suggest [@game-id cards]]))
+
+(defn respond
+  [{:keys [db/game-id fn/handle] :as env} card]
+  (handle [:respond [@game-id card]]))
+
+(defn end-turn
+  [{:keys [db/game-id fn/handle] :as env}]
+  (handle [:end-turn @game-id]))
+
+(defn accuse
+  [{:keys [db/game-id fn/handle] :as env} cards]
+  (handle [:accuse [@game-id cards]]))
+
+(defn quit
+  [{:keys [db/game-id fn/handle] :as env}]
+  (when (js/confirm "Are you sure? Quitting will end the game for everyone.")
+    (handle [:quit @game-id])))
+
 (def env (capture-env 'cows.mutations))

@@ -6,7 +6,7 @@
 (defmacro defcursors [db & forms]
   `(do
      ~@(for [[sym path] (partition 2 forms)]
-         `(def ~sym (rum.core/cursor-in ~db ~path)))))
+         `(defonce ~sym (rum.core/cursor-in ~db ~path)))))
 
 (defn flatten-form [form]
   (if (some #(% form)
@@ -29,8 +29,9 @@
                      distinct
                      vec)
               k (keyword (name nspace) (name sym))]
-          [(conj defs `(def ~sym (rum.core/derived-atom ~deps ~k
-                                   (fn ~deps ~form))))
+          [(conj defs `(defonce ~sym (rum.core/derived-atom ~deps ~k
+                                       (fn ~deps
+                                         ~form))))
            (conj sources sym)]))
       [[] (set sources)])
     first))

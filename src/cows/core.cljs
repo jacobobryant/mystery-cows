@@ -26,8 +26,9 @@
   (rum/mount (c/main env) (js/document.querySelector "#app")))
 
 (defn init* [user]
-  (m/init-db env)
-  (mount))
+  (when user
+    (m/init-db env)
+    (mount)))
 
 (defn ^:export init []
   (.. js/firebase auth (onAuthStateChanged init*)))
