@@ -15,8 +15,8 @@
      :sub-key q
      :sub-channel (firestore/subscribe fs [q])}))
 
-(defn init-db [{:keys [db/db db/subscriptions misc/auth] :as env}]
-  (let [user (.-currentUser auth)
+(defn init-db [{:keys [db/db db/subscriptions ^js misc/auth] :as env}]
+  (let [^js user (.-currentUser auth)
         uid (.-uid user)
         email (.-email user)]
     (swap! db assoc :ui {:uid uid :email email}))

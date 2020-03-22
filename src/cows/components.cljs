@@ -21,7 +21,7 @@
     [:.flex-grow-1]
     [:div
      (react email) " ("
-     (text-button {:on-click #(.signOut auth)} "sign out") ")"]]
+     (text-button {:on-click #(.signOut ^js auth)} "sign out") ")"]]
    [:hr.mt-1]])
 
 (defc game-card < static {:key-fn (comp second :ident)}

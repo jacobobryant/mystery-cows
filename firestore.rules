@@ -3,7 +3,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /games/{game} {
       allow create: if request.auth.uid != null && request.resource.data.state == "lobby" && request.resource.data.players == [request.auth.uid];
-      allow read: if request.auth.uid != null && (resource.data.state == "lobby" || request.auth.uid in resource.data.players);
+      allow read: if request.auth.uid != null &&
+                     (!exists(/databases/$(database)/documents/games/$(game)) ||
+                      resource.data.state == "lobby" ||
+                      request.auth.uid in resource.data.players);
       match /cards/{uid} {
         allow read: if request.auth.uid == uid;
       }
