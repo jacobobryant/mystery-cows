@@ -24,6 +24,9 @@ service cloud.firestore {
         allow read: if request.auth.uid == resource.data.suggester ||
                        request.auth.uid == resource.data.responder;
       }
+      match /accusations/{eventId} {
+        allow read: if request.auth.uid == resource.data.player;
+      }
     }
   }
 }

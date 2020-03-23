@@ -32,12 +32,13 @@
   colors              (zipmap players util/colors)
   current-player      (:current-player current-game)
   responder           (:responder current-game)
-  responding          (= responder uid)
   suggestion          (:suggestion current-game)
   your-turn           (= uid current-player)
   state               (keyword (:state current-game))
+  responding          (and (= :respond state) (= responder uid))
   roll-result         (:roll-result current-game)
   cards               (get-in data [:cards [:games game-id uid] :cards])
+  face-up-cards       (:face-up-cards current-game)
   positions           (u/map-keys name (:positions current-game))
   winner              (:winner current-game)
   available-locations (when (and (= state :after-roll)
@@ -46,9 +47,12 @@
                           (map #(cond-> % (string? %) util/rooms-map))
                           (into #{})))
   losers              (set (:losers current-game))
-  events              (->> (merge (:events data) (:responses data))
-                        vals
-                        (sort-by :timestamp))
+  events (->> [:events :responses :accusations]
+           ; For some reason, (map data) makes this fail. Bug in defderivations?
+           (map #(% data))
+           (apply merge)
+           vals
+           (sort-by :timestamp))
   subscriptions       (if game-id
                         #{[:games game-id]
                           [:cards [:games game-id uid]]
@@ -57,7 +61,9 @@
                           {:ident [:responses [:games game-id]]
                            :where [[:responder '== uid]]}
                           {:ident [:responses [:games game-id]]
-                           :where [[:suggester '== uid]]}}
+                           :where [[:suggester '== uid]]}
+                          {:ident [:accusations [:games game-id]]
+                           :where [[:player '== uid]]}}
                         #{{:ident [:games]
                            :where [[:state '== "lobby"]]}
                           {:ident [:games]

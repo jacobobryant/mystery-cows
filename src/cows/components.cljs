@@ -54,7 +54,7 @@
    [:.text-muted.small (.toLocaleString timestamp)]
    (map #(if (= "\n" %) [:br] %) text)])
 
-(def square-size 22)
+(def square-size 23)
 
 ; Of course, the hardest part about making a chat component is rendering it. >:-(
 (defcs chat < reactive
@@ -66,15 +66,14 @@
   (local "" ::text)
 
   [{::keys [text]} {:keys [db/messages m/send-message] :as env}]
-  [:.border.rounded.border-primary.d-flex.flex-column.flex-grow-1
-   {:style {:min-width "200px"
-            :height (* 25 square-size)
-            :overflow "hidden"}}
+  [:.border.rounded.border-primary.d-flex.flex-column.flex-grow-1.sidebar
+   {:style {:overflow "hidden"}}
    [:.flex-grow-1]
    [:.pl-3.scroll-box.border-bottom {:style {:overflow-y "auto"}}
-    (map message (take 2 (react messages)))]
+    (map message (react messages))]
    [:textarea.form-control.border-0.flex-shrink-0
-    {:placeholder "Enter message"
+    {:rows 1
+     :placeholder "Enter message"
      :on-key-down #(when (and (= 13 (.-keyCode %))
                            (not (.-shiftKey %)))
                      (send-message env @text)
@@ -87,33 +86,28 @@
                                   event-id)}
   [{:db/keys [uid players]}
    {:keys [event timestamp player roll destination cards
-           correct responder suggester card]}]
+           correct responder solution suggester card]}]
   (let [pronoun #(if (= % (react uid))
                    "You"
-                   (util/username %))
-        event-description
-        (case event
-          "roll" (str (pronoun player) " rolled a " roll)
-          "move" (when-not (s/valid? :cows.util/coordinate destination)
-                   (str (pronoun player) " moved to the "
-                     (util/room-char->name destination)))
-          "suggest" [:div
-                     (str (pronoun player) " made a suggestion: " (str/join ", " cards)) [:br]
-                     (for [p (util/in-between (react players) player responder)]
-                       [:span {:key p}
-                        (pronoun p) " couldn't respond." [:br]])
-                     (when responder
-                       (str "Waiting for " (str/lower-case (pronoun responder)) " to respond."))]
-          "respond" (str (pronoun responder) " showed " (str/lower-case (pronoun suggester))
-                      " a card"
-                      (if card
-                        (str ": " card)
-                        "."))
-          "accuse" [:div (pronoun player) " made an accusation: " (str/join ", " cards) [:br]
-                    (if correct "Correct!" "Wrong!")])]
-    (when event-description
-      [:.mb-2.border-top.pt-2
-       event-description])))
+                   (util/username %))]
+    [:.mb-2.border-top.pt-2
+     (case event
+       "suggest" [:div
+                  (str (pronoun player) " made a suggestion: " (str/join ", " cards)) [:br]
+                  (if responder
+                    (for [p (util/in-between (react players) player responder)]
+                      [:span {:key p}
+                       (pronoun p) " couldn't respond." [:br]])
+                    "No one could respond.")]
+       "respond" (str (pronoun responder) " showed " (str/lower-case (pronoun suggester))
+                   " a card"
+                   (if card
+                     (str ": " card)
+                     "."))
+       "accuse" [:div (pronoun player) " made an accusation: " (str/join ", " cards) [:br]
+                 (if correct "Correct!" "Wrong!")
+                 (when solution
+                   (str " Solution: " (str/join ", " solution)))])]))
 
 (defc events < reactive
   {:did-update (fn [{component :rum/react-component :as s}]
@@ -123,9 +117,8 @@
                  s)}
 
   [{:keys [db/events] :as env}]
-  [:.border.rounded.border-primary.d-flex.flex-column.mb-3
-   {:style {:height "300px"
-            :overflow "hidden"}}
+  [:.border.rounded.border-primary.d-flex.flex-column.sidebar
+   {:style {:overflow "hidden"}}
    [:.flex-grow-1]
    [:.p-2.scroll-box.border-bottom {:style {:overflow-y "auto"}}
     (map #(event env %) (react events))]])
@@ -215,26 +208,35 @@
   [{:db/keys [your-turn state uid winner responder
               responding current-player roll-result]
     :m/keys [roll suggest] :as env}]
-  (cond
-    (= :game-over (react state))
+  (if (= :game-over (react state))
     [:p "Game over. "
      (if (= (react uid) (react winner))
        "You won!"
        (str (util/username (react winner)) " won."))]
+    (let [your-turn (react your-turn)
+          username (util/username (react current-player))]
+      (case (react state)
+        :start-turn (if your-turn
+                      [:button.btn.btn-primary {:on-click #(roll env)} "Roll dice"]
+                      [:p "Waiting for " username " to roll the dice."])
 
-    (react your-turn)
-    (case (react state)
-      :start-turn [:button.btn.btn-primary {:on-click #(roll env)} "Roll dice"]
-      :after-roll [:p "You rolled " (react roll-result) ". Choose a destination."]
-      :suggest (choose-cards {:text "Make suggestion"
-                              :on-choose #(suggest env %)})
-      :respond [:p "Waiting for " (util/username (react responder)) " to show you a card."]
-      :accuse (accuse env))
+        :after-roll (if your-turn
+                      [:p "You rolled a " (react roll-result) ". Choose a destination."]
+                      [:p username " rolled " (react roll-result) "."])
 
-    :default
-    (if (and (= :respond (react state)) (react responding))
-      (show-card env)
-      [:p "It's " (util/username (react current-player)) "'s turn."])))
+        :suggest (if your-turn
+                   (choose-cards {:text "Make suggestion"
+                                  :on-choose #(suggest env %)})
+                   [:p "Waiting for " username " to make a suggestion."])
+
+        :respond (if (react responding)
+                    (show-card env)
+                    [:p "Waiting for " (util/username (react responder)) " to show "
+                     (if your-turn "you" username) " a card."])
+
+        :accuse (if your-turn
+                  (accuse env)
+                  [:p "Waiting for " username " to end their turn or make an accusation."])))))
 
 (defn board-element [row col width height z]
   {:position "absolute"
@@ -296,7 +298,7 @@
        (let [horizontal (= orientation :horizontal)
              [width height] (cond-> [0.1 1] horizontal reverse)
              style (merge (board-element row col width height 3)
-                     {:background-color "black"})
+                     {:background-color "red"})
              style (update style (if horizontal :top :left) dec)]
          [:div {:key (pr-str [row col])
                 :style style}]))
@@ -310,11 +312,14 @@
                 :style style}]))]))
 
 (defc static-info < reactive
-  [{:db/keys [events uid losers players names current-player cards]}]
+  [{:db/keys [events uid losers players names current-player cards face-up-cards]}]
   [:div
-   [:div.mb-2 "Cards: " (str/join ", " (react cards))]
+   [:div "Your cards: " (str/join ", " (react cards))]
+   (when (not-empty (react face-up-cards))
+     [:div.mt-2 "Face-up cards: " (str/join ", " (react face-up-cards))])
+   [:hr]
    [:div "Players: "]
-   [:ul
+   [:ul.mb-2
     (for [p (react players)]
       [:li {:key p
             :class [(when (= (react current-player) p) "font-weight-bold")
@@ -330,17 +335,32 @@
      (game-lobby env)
      [:.mt-3]
      (chat env)]
-    [:div
-     (events env)
-     [:.d-flex
+    [:.d-flex
+     [:div
       (board env)
+      [:.mb-3]
+      [:.d-flex.justify-content-center
+       (turn-controls env)]]
       [:.mr-4]
-      (chat env)]
-     [:.mt-3]
-     (turn-controls env)
-     [:hr]
-     (static-info env)
-     [:button.btn.btn-secondary {:on-click #(quit env)} "Quit"]]))
+      [:.flex-grow-1
+       [:.d-flex.flex-column.flex-lg-row
+        {:style {:margin-bottom "16px"
+                 :height (* 25 square-size)
+                 :max-height (* 25 square-size)}}
+        [:div {:style {:flex-basis 0
+                       :flex-grow 1
+                       :flex-shrink 0}}
+         (events env)]
+        [:div {:style {:width "16px"
+                       :height "16px"}}]
+        [:div {:style {:flex-basis 0
+                       :flex-grow 1
+                       :flex-shrink 0}}
+         (chat env)]]
+       [:.border.border-primary.rounded.p-2
+        (static-info env)
+        [:.d-flex.justify-content-end
+         [:button.btn.btn-secondary {:on-click #(quit env)} "Quit"]]]]]))
 
 (defc main < reactive
   [{:keys [db/game-id] :as env}]

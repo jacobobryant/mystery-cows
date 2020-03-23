@@ -65,11 +65,7 @@
         (let [roll (apply + (repeatedly 2 #(inc (rand-int 6))))]
           (<! (write (firestore)
                 {[:games game-id] ^:update {:state "after-roll"
-                                            :roll-result roll}
-                 [:events [:games game-id]] {:event "roll"
-                                             :timestamp (u/now)
-                                             :player uid
-                                             :roll roll}})))))
+                                            :roll-result roll}})))))
     nil))
 
 (defmethod handle :move
@@ -89,11 +85,7 @@
                ^:update {:state (if (s/valid? :cows.util/coordinate dest)
                                   "accuse"
                                   "suggest")
-                         (str "positions." uid) dest}
-               [:events [:games game-id]] {:event "move"
-                                           :timestamp (u/now)
-                                           :player uid
-                                           :destination dest}}))))
+                         (str "positions." uid) dest}}))))
     nil))
 
 (defmethod handle :end-turn
@@ -142,7 +134,7 @@
 (defmethod handle :accuse
   [{:keys [auth/uid]} [game-id [person weapon room :as accusation]]]
   (go
-    (when-some [{:keys [current-player state positions players losers]
+    (when-some [{:keys [current-player face-up-cards state positions players losers]
                  :as game} (<! (game game-id uid))]
       (when (and (= state "accuse")
               (= uid current-player)
@@ -156,7 +148,8 @@
                              (mapcat :cards)
                              set)
               solution (set/difference (set (concat util/names util/weapons util/rooms))
-                         player-cards)
+                         player-cards
+                         (set face-up-cards))
               correct (= #{person weapon room} solution)
               two-left (and (not correct)
                          (= 2 (- (count players) (count losers))))
@@ -178,13 +171,20 @@
                                       (arrayUnion uid)))
                           :winner winner
                           :solution (when winner solution))]
-          (<! (write (firestore)
-                {[:games game-id] (with-meta game-data {:update true})
-                 [:events [:games game-id]] {:event "accuse"
-                                             :timestamp (u/now)
-                                             :player uid
-                                             :correct correct
-                                             :cards [person weapon room]}})))))
+          (let [event-id (str (random-uuid))
+                event {:event "accuse"
+                       :timestamp (u/now)
+                       :player uid
+                       :correct correct
+                       :cards [person weapon room]}
+                events (cond->
+                         {[:events [:games game-id event-id]] event}
+                         (not correct) (assoc [:accusations [:games game-id event-id]]
+                                         (assoc event :solution solution)))]
+            (<! (write (firestore)
+                  (merge
+                    {[:games game-id] (with-meta game-data {:update true})}
+                    events)))))))
     nil))
 
 (defmethod handle :respond
