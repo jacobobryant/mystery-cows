@@ -7,14 +7,14 @@ sass () {
 
 setup () {
   npm install
+  wget -O public/css/firebase-ui-auth-4.4.0.css https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css
+  wget -O public/js/firebase-ui-auth-4.4.0.js https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.js
   if ! [ -d bootstrap/bootstrap-4.4.1 ]; then
     cd bootstrap
-    curl -OL https://github.com/twbs/bootstrap/archive/v4.4.1.zip
+    wget https://github.com/twbs/bootstrap/archive/v4.4.1.zip
     unzip v4.4.1.zip
     rm v4.4.1.zip
   fi
-  curl -o public/css/firebase-ui-auth-4.4.0.css https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css
-  curl -o public/js/firebase-ui-auth-4.4.0.js https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.js
 }
 
 dev () {
@@ -26,8 +26,9 @@ dev () {
 deploy () {
   sass
   clj -m cows.core
-  rm -r $(find public/ -name cljs-runtime)
+  rm -rf $(find public/ -name cljs-runtime)
   npx shadow-cljs release main fn
+  cp package.json functions/package.json
   npx firebase deploy
 }
 
