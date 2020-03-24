@@ -208,35 +208,35 @@
   [{:db/keys [your-turn state uid winner responder
               responding current-player roll-result]
     :m/keys [roll suggest] :as env}]
-  (if (= :game-over (react state))
-    [:p "Game over. "
-     (if (= (react uid) (react winner))
-       "You won!"
-       (str (util/username (react winner)) " won."))]
-    (let [your-turn (react your-turn)
-          username (util/username (react current-player))]
-      (case (react state)
-        :start-turn (if your-turn
-                      [:button.btn.btn-primary {:on-click #(roll env)} "Roll dice"]
-                      [:p "Waiting for " username " to roll the dice."])
+  (let [your-turn (react your-turn)
+        username (util/username (react current-player))]
+    (case (react state)
+      :start-turn (if your-turn
+                    [:button.btn.btn-primary {:on-click #(roll env)} "Roll dice"]
+                    [:p "Waiting for " username " to roll the dice."])
 
-        :after-roll (if your-turn
-                      [:p "You rolled a " (react roll-result) ". Choose a destination."]
-                      [:p username " rolled " (react roll-result) "."])
+      :after-roll (if your-turn
+                    [:p "You rolled a " (react roll-result) ". Choose a destination."]
+                    [:p username " rolled " (react roll-result) "."])
 
-        :suggest (if your-turn
-                   (choose-cards {:text "Make suggestion"
-                                  :on-choose #(suggest env %)})
-                   [:p "Waiting for " username " to make a suggestion."])
+      :suggest (if your-turn
+                 (choose-cards {:text "Make suggestion"
+                                :on-choose #(suggest env %)})
+                 [:p "Waiting for " username " to make a suggestion."])
 
-        :respond (if (react responding)
-                    (show-card env)
-                    [:p "Waiting for " (util/username (react responder)) " to show "
-                     (if your-turn "you" username) " a card."])
+      :respond (if (react responding)
+                 (show-card env)
+                 [:p "Waiting for " (util/username (react responder)) " to show "
+                  (if your-turn "you" username) " a card."])
 
-        :accuse (if your-turn
-                  (accuse env)
-                  [:p "Waiting for " username " to end their turn or make an accusation."])))))
+      :accuse (if your-turn
+                (accuse env)
+                [:p "Waiting for " username " to end their turn or make an accusation."])
+
+      :game-over [:p "Game over. "
+                  (if (= (react uid) (react winner))
+                    "You won!"
+                    (str (util/username (react winner)) " won."))])))
 
 (defn board-element [row col width height z]
   {:position "absolute"
