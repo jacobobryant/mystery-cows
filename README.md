@@ -9,6 +9,8 @@ running, you can start poking around the code to see how it works. While
 running `./task dev`, any Clojure(Script) files you change will be recompiled
 automatically.
 
+I've also recorded some commentary on the architecture of this project [here](https://www.youtube.com/watch?v=c6CylfdcsTo).
+
 ## Setup
 
 1. At [firebase.google.com](https://firebase.google.com), create a new project.
