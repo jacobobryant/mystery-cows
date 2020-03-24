@@ -36,3 +36,23 @@ header.masthead .overlay {
     font-size: 3rem;
   }
 }
+
+.available-room:hover {
+  cursor: pointer;
+  background-color: #bbb;
+}
+
+.available-square:hover {
+  cursor: pointer;
+  background-color: rgb(173, 91, 3) !important;
+}
+
+.sidebar {
+  height: 279.5px;
+}
+
+@media (min-width: 992px) {
+  .sidebar {
+    height: 575px;
+  }
+}

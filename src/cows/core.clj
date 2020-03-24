@@ -24,8 +24,7 @@
 
 (def navbar
   [:nav.navbar.navbar-dark.bg-primary.static-top
-   [:.container
-    [:.navbar-brand "Mystery Cows"]]])
+   [:.navbar-brand "Mystery Cows"]])
 
 (def header
   [:header.masthead.text-white.text-center
@@ -75,13 +74,14 @@
                           :title title
                           :text text}))]]])
 
-(def firebase-js
+(defn firebase-js [modules]
   (list
-    [:script {:src "/__/firebase/7.8.0/firebase-app.js"}]
-    [:script {:src "/__/firebase/7.8.0/firebase-auth.js"}]
+    [:script {:src "/__/firebase/7.11.0/firebase-app.js"}]
+    (for [m modules]
+      [:script {:src (str "/__/firebase/7.11.0/firebase-" (name m) ".js")}])
     [:script {:src "/__/firebase/init.js"}]))
 
-(defc base-page [{:keys [head scripts]} & contents]
+(defc base-page [{:keys [firebase-modules head scripts]} & contents]
   [:html {:lang "en-US"
           :style {:min-height "100%"}}
    (into
@@ -92,7 +92,8 @@
      [:body {:style {:font-family "'Helvetica Neue', Helvetica, Arial, sans-serif"}}
       navbar
       contents
-      firebase-js]
+      (when (not-empty firebase-modules)
+        (firebase-js firebase-modules))]
      scripts)])
 
 (def ensure-logged-in
@@ -106,7 +107,8 @@
     {:__html "firebase.auth().onAuthStateChanged(u => { if (u) window.location.href = '/app/'; });"}}])
 
 (defc landing-page []
-  (base-page {:scripts [ensure-logged-out]}
+  (base-page {:firebase-modules [:auth]
+              :scripts [ensure-logged-out]}
     header
     testimonials))
 
@@ -114,6 +116,7 @@
   (base-page {:head [[:link {:type "text/css"
                              :rel "stylesheet"
                              :href "/css/firebase-ui-auth-4.4.0.css"}]]
+              :firebase-modules [:auth]
               :scripts [[:script {:src "/js/firebase-ui-auth-4.4.0.js"}]
                         [:script {:src "/js/main.js"}]
                         ensure-logged-out]}
@@ -121,12 +124,15 @@
      {:style {:margin-top "7rem"}}]))
 
 (defc app []
-  (base-page {:scripts [ensure-logged-in]}
+  (base-page {:firebase-modules [:auth :firestore :functions]
+              :scripts [ensure-logged-in
+                        [:script {:src "/cljs/main.js"}]]}
     [:#app
      [:.d-flex.flex-column.align-items-center.mt-4
-      [:p "Welcome to Mystery Cows."]
-      [:button.btn.btn-primary {:on-click "firebase.auth().signOut()"}
-       "Sign Out"]]]))
+      [:.spinner-border.text-primary
+       {:role "status"}
+       [:span.sr-only
+        "Loading..."]]]]))
 
 (def pages
   {"/" landing-page

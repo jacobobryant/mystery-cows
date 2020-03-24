@@ -6,7 +6,7 @@ sass () {
 }
 
 setup () {
-  npm install live-server onchange node-sass
+  npm install
   if ! [ -d bootstrap/bootstrap-4.4.1 ]; then
     cd bootstrap
     curl -OL https://github.com/twbs/bootstrap/archive/v4.4.1.zip
@@ -19,22 +19,16 @@ setup () {
 
 dev () {
   sass
-  sass -w &
-  if ! [ -f public/index.html ]; then
-    clj -m cows.core
-  fi
-  if [ "$1" = live ]; then
-    (cd public && npx live-server) &
-  else
-    firebase serve &
-  fi
-  npx onchange -v 'src/**/*.clj' -- clj -m cows.core
+  clj -m cows.core
+  overmind s
 }
 
 deploy () {
   sass
   clj -m cows.core
-  firebase deploy
+  rm -r $(find public/ -name cljs-runtime)
+  npx shadow-cljs release main fn
+  npx firebase deploy
 }
 
 "$@"

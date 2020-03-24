@@ -1,8 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /signups/{signup} {
-      allow create: if true;
+    match /games/{game} {
+      allow create: if request.auth.uid != null && request.resource.data.state == "lobby" && request.resource.data.players == [request.auth.uid];
+      allow read: if request.auth.uid != null &&
+                     (!exists(/databases/$(database)/documents/games/$(game)) ||
+                      resource.data.state == "lobby" ||
+                      request.auth.uid in resource.data.players);
+      match /cards/{uid} {
+        allow read: if request.auth.uid == uid;
+      }
+      match /messages/{message} {
+        allow read: if !exists(/databases/$(database)/documents/games/$(game)) ||
+                       request.auth.uid in get(/databases/$(database)/documents/games/$(game)).data.players;
+        allow create: if request.resource.data.user == request.auth.uid &&
+                         request.auth.uid in get(/databases/$(database)/documents/games/$(game)).data.players;
+      }
+      match /events/{eventId} {
+        allow read: if !exists(/databases/$(database)/documents/games/$(game)) ||
+                       request.auth.uid in get(/databases/$(database)/documents/games/$(game)).data.players;
+      }
+      match /responses/{eventId} {
+        allow read: if request.auth.uid == resource.data.suggester ||
+                       request.auth.uid == resource.data.responder;
+      }
+      match /accusations/{eventId} {
+        allow read: if request.auth.uid == resource.data.player;
+      }
     }
   }
 }
