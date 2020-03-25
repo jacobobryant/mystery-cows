@@ -22,7 +22,7 @@ current state.
 2. In the "Authentication" section, click "Set up sign-in method." First enable
    "Email/Password," and then also enable "Email link (passwordless sign-in)."
    After that, enable sign-in with Google.
-3. In the "Database" section, click on "Database" and then "Create database."
+3. In the "Database" section, click on "Create database."
    Accept the defaults.
 4. Install dependencies: [NPM](https://www.npmjs.com/get-npm),
    [Clojure](https://clojure.org/guides/getting_started) and
