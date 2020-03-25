@@ -9,7 +9,12 @@ running, you can start poking around the code to see how it works. While
 running `./task dev`, any Clojure(Script) files you change will be recompiled
 automatically.
 
-I've also recorded some commentary on the architecture of this project [here](https://www.youtube.com/watch?v=c6CylfdcsTo).
+I've also recorded [some
+commentary](https://www.youtube.com/watch?v=c6CylfdcsTo) on the architecture of
+this project. The most interesting part is at
+[25:42](https://youtu.be/c6CylfdcsTo?t=1542), where I explain how you can
+specify declaratively which Firestore subscriptions the app needs based on its
+current state.
 
 ## Setup
 
@@ -33,7 +38,7 @@ I've also recorded some commentary on the architecture of this project [here](ht
 2. After Shadow CLJS loads, go to [localhost:9630](http://localhost:9630).
    Hover over "Builds," then check the "main" and "fn" boxes.
 
-The app is now available at [localhost:5000](http://localhost:5000).
+The app will be available at [localhost:5000](http://localhost:5000).
 
 ## Deploy
 
