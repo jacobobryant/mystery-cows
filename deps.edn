@@ -2,6 +2,6 @@
                                thheller/shadow-cljs {:mvn/version "2.8.40"}
                                binaryage/devtools {:mvn/version "0.9.10"}
                                cljsjs/firebase {:mvn/version "5.7.3-1"}
-                               trident/firestore {:mvn/version "0.2.1"}}}}
+                               trident/firestore {:mvn/version "0.2.3"}}}}
  :deps
  {rum {:mvn/version "0.11.4"}}}
