@@ -45,15 +45,6 @@ The app will be available at [localhost:5000](http://localhost:5000).
 Run `./task deploy`. The app will be available at
 `https://your-project-id.web.app`.
 
-## Contact
-
-Search for `Jacob O'Bryant` on [Clojurians Slack](http://clojurians.net), or
-get my email from [my website](https://jacobobryant.com).
-
-## Self-promotion
-
-If you want to support my work, [follow me](https://findka.com/u/jobryant) on Findka.
-
 ## License
 
 Distributed under the [EPL v2.0](LICENSE)
