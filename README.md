@@ -22,21 +22,22 @@ current state.
 2. In the "Authentication" section, click "Set up sign-in method." First enable
    "Email/Password," and then also enable "Email link (passwordless sign-in)."
    After that, enable sign-in with Google.
-3. In the "Database" section, click on "Create database."
+3. In the side bar, click on "Cloud Firestore" and then "Create database."
    Accept the defaults.
 4. Install dependencies: [NPM](https://www.npmjs.com/get-npm),
    [Clojure](https://clojure.org/guides/getting_started) and
    [Overmind](https://github.com/DarthSim/overmind).
 5. Clone this repository. Inside the project directory, run `./task setup`.
-6. Run `firebase login` and then `firebase init`. Select your existing project,
-   and then select Firestore, Hosting and Functions. Accept the defaults for
-   everything.
+6. Run `firebase login` and then `firebase init`. Select Firestore, Hosting and
+   Functions, and select your existing project. Accept the defaults for
+   everything elses.
 
 ## Development
 
 1. Run `./task dev`.
 2. After Shadow CLJS loads, go to [localhost:9630](http://localhost:9630).
    Hover over "Builds," then check the "main" and "fn" boxes.
+3. In a new terminal, run `firebase emulators:start`.
 
 The app will be available at [localhost:5000](http://localhost:5000).
 
