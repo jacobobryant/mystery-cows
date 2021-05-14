@@ -1,5 +1,7 @@
 # Mystery Cows
 
+Note: I no longer use Firebase (I switched to [Biff](https://biff.findka.com), so this repo is not necessarily up-to-date.
+
 This is an example program (a cow-themed version of the board game Clue) meant
 to demonstrate how to make a web app with ClojureScript and Firebase. It's
 deployed at [cows.jacobobryant.com](https://cows.jacobobryant.com).
